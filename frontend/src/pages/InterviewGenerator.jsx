@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
-import axios from 'axios';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { GlassCard, PageHeader, ProgressBar, Skeleton } from '../components/ui';
-
-const API = 'http://127.0.0.1:8000';
+import { apiPost, getApiErrorMessage } from '../api';
 
 const ROLES = ['Software Engineer', 'AI Engineer', 'ML Engineer', 'Data Analyst', 'Data Scientist', 'Full Stack Developer'];
 const EXPERIENCE_LEVELS = ['Fresher', '1-3 Years', '3-5 Years'];
@@ -74,7 +72,7 @@ function InterviewGenerator() {
     setMockMode(false);
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/interview-generator`, {
+      const res = await apiPost('/interview-generator', {
         role,
         experience_level: experienceLevel,
         difficulty: experienceLevel,
@@ -89,7 +87,7 @@ function InterviewGenerator() {
       });
       if (res.data.error && !(res.data.items || []).length) setError(res.data.error);
     } catch (e) {
-      setError(e.response?.data?.detail || 'Request failed. Is the backend running?');
+      setError(getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -100,7 +98,7 @@ function InterviewGenerator() {
     setEvaluating(true);
     setError('');
     try {
-      const res = await axios.post(`${API}/interview-evaluate`, {
+      const res = await apiPost('/interview-evaluate', {
         role,
         experience_level: experienceLevel,
         question: currentQuestion.question,
@@ -111,7 +109,7 @@ function InterviewGenerator() {
       setAnswer('');
       if (currentIndex < questions.length - 1) setCurrentIndex((value) => value + 1);
     } catch (e) {
-      setError(e.response?.data?.detail || 'Evaluation failed. Make sure the backend is running.');
+      setError(getApiErrorMessage(e));
     } finally {
       setEvaluating(false);
     }

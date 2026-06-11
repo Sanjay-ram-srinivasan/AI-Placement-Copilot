@@ -1,10 +1,8 @@
 import { useState, useRef } from 'react';
-import axios from 'axios';
 import ScoreRing from '../components/ScoreRing';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { GlassCard, PageHeader, Skeleton } from '../components/ui';
-
-const API = 'http://127.0.0.1:8000';
+import { apiPost, getApiErrorMessage } from '../api';
 
 function extractScore(text) {
   if (!text) return 0;
@@ -50,16 +48,16 @@ function ResumeAnalyzer() {
     try {
       const form = new FormData();
       form.append('file', file);
-      await axios.post(`${API}/upload-resume`, form);
+      await apiPost('/upload-resume', form);
     } catch (e) {
-      setError('Upload failed: ' + (e.response?.data?.detail || e.message));
+      setError(`Upload failed: ${getApiErrorMessage(e)}`);
       setUploading(false);
       return;
     }
     setUploading(false);
     setAnalyzing(true);
     try {
-      const res = await axios.post(`${API}/resume-analysis`);
+      const res = await apiPost('/resume-analysis');
       const result = res.data;
       if (result.error) {
         setError(result.error);
@@ -69,7 +67,7 @@ function ResumeAnalyzer() {
         setScore(extractScore(text));
       }
     } catch (e) {
-      setError('Analysis failed: ' + (e.response?.data?.detail || e.message));
+      setError(`Analysis failed: ${getApiErrorMessage(e)}`);
     }
     setAnalyzing(false);
   };

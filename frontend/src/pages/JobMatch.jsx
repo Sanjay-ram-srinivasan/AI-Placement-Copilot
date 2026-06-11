@@ -1,11 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
-import axios from 'axios';
 import ScoreRing from '../components/ScoreRing';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { PageHeader, Skeleton } from '../components/ui';
+import { apiPost, getApiErrorMessage } from '../api';
 import './JobMatch.css';
-
-const API = 'http://127.0.0.1:8000';
 
 const EMPTY_RESULT = {
   match_score: 0,
@@ -167,7 +165,7 @@ function JobMatch() {
       form.append('file', file);
       form.append('job_description', jobDescription.trim());
 
-      const response = await axios.post(`${API}/job-match`, form);
+      const response = await apiPost('/job-match', form);
 
       if (response.data.error) {
         setError(response.data.error);
@@ -175,11 +173,7 @@ function JobMatch() {
         setResult({ ...EMPTY_RESULT, ...response.data });
       }
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-        err.response?.data?.error ||
-        'Job match failed. Please make sure the backend is running.'
-      );
+      setError(getApiErrorMessage(err));
     } finally {
       setLoading(false);
     }

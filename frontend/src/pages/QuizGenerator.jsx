@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { PageHeader, Skeleton } from '../components/ui';
+import { apiGet, apiPost, getApiErrorMessage } from '../api';
 import './QuizGenerator.css';
-
-const API = 'http://127.0.0.1:8000';
 
 const QUESTION_TYPES = [
   { value: 'mcq', label: 'MCQ' },
@@ -72,9 +70,10 @@ function QuizGenerator() {
   useEffect(() => {
     const loadFiles = async () => {
       try {
-        const res = await axios.get(`${API}/notes/files`);
+        const res = await apiGet('/notes/files');
         setFiles(res.data.files || []);
-      } catch {
+      } catch (e) {
+        console.error(e);
         setFiles([]);
       }
     };
@@ -103,7 +102,7 @@ function QuizGenerator() {
     try {
       window.setTimeout(() => setProgress('Building Groq prompt from your notes'), 350);
       window.setTimeout(() => setProgress('Generating questions and answers'), 900);
-      const res = await axios.post(`${API}/quiz-generator`, {
+      const res = await apiPost('/quiz-generator', {
         selected_files: selectedFiles,
         question_type: questionType,
         question_count: questionCount,
@@ -116,7 +115,7 @@ function QuizGenerator() {
       setSources(res.data.sources || []);
       setProgress('Quiz ready');
     } catch (e) {
-      setError(e.response?.data?.detail || 'Quiz generation failed. Make sure the backend is running.');
+      setError(getApiErrorMessage(e));
     } finally {
       setLoading(false);
     }

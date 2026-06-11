@@ -1,9 +1,7 @@
 import { useState } from 'react';
-import axios from 'axios';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { GlassCard, PageHeader, ProgressBar, Skeleton } from '../components/ui';
-
-const API = 'http://127.0.0.1:8000';
+import { apiPost, getApiErrorMessage } from '../api';
 
 const ROLES = ['ML Engineer', 'Data Scientist', 'Backend Developer', 'Full Stack Developer', 'Frontend Developer', 'DevOps Engineer'];
 const WEEKS_OPTIONS = [4, 6, 8, 12, 16];
@@ -20,7 +18,7 @@ function StudyPlan() {
     setRoadmap('');
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/study-plan`, { target_role: role, duration_weeks: weeks });
+      const res = await apiPost('/study-plan', { target_role: role, duration_weeks: weeks });
       const result = res.data;
       if (result.error) {
         setError(result.error);
@@ -28,7 +26,7 @@ function StudyPlan() {
         setRoadmap(result.roadmap || '');
       }
     } catch (e) {
-      setError(e.response?.data?.detail || 'Request failed. Is the backend running?');
+      setError(getApiErrorMessage(e));
     }
     setLoading(false);
   };

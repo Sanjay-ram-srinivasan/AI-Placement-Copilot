@@ -147,6 +147,15 @@ button { border: 0; }
 .model-status-dot.local { background: var(--green); box-shadow: 0 0 14px rgba(52,211,153,.75); }
 .model-card-label { color: var(--faint); font-size: 10px; font-weight: 850; text-transform: uppercase; letter-spacing: .08em; }
 .model-card-name { color: var(--text); font-size: 11px; font-weight: 800; margin-top: 2px; }
+.sidebar-api-card {
+  display: flex; gap: 9px; align-items: center; margin: 0 12px 13px; padding: 9px 10px;
+  border-radius: 14px; background: var(--glass-bg); border: 1px solid var(--glass-border);
+  color: var(--muted); font-size: 11px; font-weight: 800;
+}
+.api-status-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--red); box-shadow: 0 0 14px rgba(251,113,133,.72); }
+.sidebar-api-card.online { color: #bbf7d0; border-color: rgba(52,211,153,.28); }
+.sidebar-api-card.online .api-status-dot { background: var(--green); box-shadow: 0 0 14px rgba(52,211,153,.75); }
+.sidebar-api-card.offline { color: #fecdd3; border-color: rgba(251,113,133,.28); }
 .sidebar-divider { height: 1px; background: var(--line); margin: 0 12px; }
 .sidebar-nav { flex: 1; padding: 14px 10px; display: grid; align-content: start; gap: 7px; }
 .nav-item {

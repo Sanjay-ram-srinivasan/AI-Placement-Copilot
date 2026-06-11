@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import { PageHeader, Skeleton } from '../components/ui';
-
-const API = 'http://127.0.0.1:8000';
+import { apiDelete, apiGet, apiPost, getApiErrorMessage } from '../api';
 
 const SUGGESTED = [
   'What is normalization in DBMS?',
@@ -40,9 +38,10 @@ function Chat() {
 
   const loadUploadedFiles = async () => {
     try {
-      const res = await axios.get(`${API}/notes/files`);
+      const res = await apiGet('/notes/files');
       setUploadedFiles(res.data.files || []);
-    } catch {
+    } catch (e) {
+      console.error(e);
       setUploadedFiles([]);
     }
   };
@@ -73,7 +72,7 @@ function Chat() {
     try {
       const form = new FormData();
       selectedFiles.forEach((file) => form.append('files', file));
-      const res = await axios.post(`${API}/upload-notes`, form);
+      const res = await apiPost('/upload-notes', form);
       setUploadedFiles(res.data.uploaded_files || []);
       setSelectedFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -83,7 +82,7 @@ function Chat() {
         sources: (res.data.files || []).map((file) => file.filename),
       }]);
     } catch (e) {
-      setUploadError(e.response?.data?.detail || 'Upload failed. Make sure the backend is running at port 8000.');
+      setUploadError(getApiErrorMessage(e));
     } finally {
       setUploading(false);
     }
@@ -97,11 +96,11 @@ function Chat() {
     setDeletingFile(file.name);
     setUploadError('');
     try {
-      const res = await axios.delete(`${API}/notes/files/${encodeURIComponent(file.name)}`);
+      const res = await apiDelete(`/notes/files/${encodeURIComponent(file.name)}`);
       setUploadedFiles(res.data.uploaded_files || []);
       setToast('File deleted successfully.');
     } catch (e) {
-      setUploadError(e.response?.data?.detail || 'Delete failed. Make sure the backend is running at port 8000.');
+      setUploadError(getApiErrorMessage(e));
       await loadUploadedFiles();
     } finally {
       setDeletingFile('');
@@ -115,10 +114,10 @@ function Chat() {
     setInput('');
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/ask`, { question });
+      const res = await apiPost('/ask', { question });
       setMessages((m) => [...m, { role: 'ai', content: res.data.answer || 'No response.', sources: res.data.sources || [] }]);
-    } catch {
-      setMessages((m) => [...m, { role: 'ai', content: 'Request failed. Make sure the backend is running at port 8000.', sources: [] }]);
+    } catch (e) {
+      setMessages((m) => [...m, { role: 'ai', content: getApiErrorMessage(e), sources: [] }]);
     }
     setLoading(false);
   };

@@ -1,4 +1,6 @@
 import { NavLink } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { apiGet } from '../api';
 
 const MODEL_PROVIDER = import.meta.env.VITE_LLM_PROVIDER || 'groq';
 
@@ -14,6 +16,27 @@ const navItems = [
 
 function Sidebar() {
   const isGroq = MODEL_PROVIDER.toLowerCase() === 'groq';
+  const [backendOnline, setBackendOnline] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    const checkBackend = async () => {
+      try {
+        await apiGet('/health');
+        if (active) setBackendOnline(true);
+      } catch {
+        if (active) setBackendOnline(false);
+      }
+    };
+
+    checkBackend();
+    const timer = window.setInterval(checkBackend, 30000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   return (
     <aside className="sidebar">
@@ -31,6 +54,11 @@ function Sidebar() {
           <div className="model-card-label">{isGroq ? 'Connected Model' : 'Local AI'}</div>
           <div className="model-card-name">{isGroq ? 'Groq Llama 3.3 70B' : 'qwen3:8b via Ollama'}</div>
         </div>
+      </div>
+
+      <div className={`sidebar-api-card${backendOnline ? ' online' : ' offline'}`}>
+        <span className="api-status-dot" />
+        <div>{backendOnline ? '🟢 Backend Connected' : '🔴 Backend Offline'}</div>
       </div>
 
       <div className="sidebar-divider" />
