@@ -58,7 +58,6 @@ AI Resume Intelligence • Skill Gap Analysis • Learning Roadmaps • Career G
 - [System Architecture](#-system-architecture)
 - [AI & RAG Workflow](#-ai--rag-workflow)
 - [Tech Stack](#️-tech-stack)
-- [Screenshots](#️-screenshots)
 - [Project Structure](#-project-structure)
 - [Installation Guide](#️-installation-guide)
 - [Environment Variables](#-environment-variables)
