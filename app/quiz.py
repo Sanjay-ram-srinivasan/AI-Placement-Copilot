@@ -305,3 +305,45 @@ Uploaded notes context:
         "raw_response": raw_result if not questions else "",
         "error": None if questions else "The LLM did not return parseable quiz JSON. Try again.",
     }
+
+
+def generate_role_quiz(skill: str, role: str = "Target Role", question_count: int = 5, difficulty: str = "medium") -> dict:
+    """Generate a focused quiz for a missing skill without requiring uploaded notes."""
+    count = question_count if question_count in QUESTION_COUNTS else 5
+    difficulty = difficulty if difficulty in DIFFICULTIES else "medium"
+    topic = (skill or "").strip()
+    if not topic:
+        return {"error": "Skill is required.", "questions": []}
+
+    prompt = f"""
+You are an expert technical quiz creator.
+
+Generate exactly {count} {difficulty} multiple-choice questions for the skill "{topic}" in the context of a {role} role.
+
+Return ONLY valid JSON. Do not wrap it in markdown.
+Use this schema:
+[
+  {{
+    "type": "mcq",
+    "difficulty": "{difficulty}",
+    "topic": "{topic}",
+    "question": "Question text",
+    "options": ["A. option", "B. option", "C. option", "D. option"],
+    "answer": "Correct option text",
+    "explanation": "Brief explanation"
+  }}
+]
+"""
+    raw_result = generate_response(prompt)
+    questions = _normalize_questions(raw_result, "mcq")
+    return {
+        "question_type": "mcq",
+        "question_count": count,
+        "difficulty": difficulty,
+        "topic": topic,
+        "role": role,
+        "questions": questions,
+        "sources": [],
+        "raw_response": raw_result if not questions else "",
+        "error": None if questions else "The LLM did not return parseable role quiz JSON. Try again.",
+    }

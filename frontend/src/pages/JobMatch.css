@@ -1,1 +1,133 @@
-/* Job Match uses the shared premium UI system in index.css. */
+.jm-gradient-panel {
+  padding: 18px;
+  border: 1px solid rgba(192, 132, 252, 0.28);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(34, 211, 238, 0.08)),
+    rgba(255, 255, 255, 0.055);
+}
+
+.job-match-progress-row,
+.jm-bar-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(140px, 2fr) auto;
+  gap: 12px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.job-match-progress-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.jm-muted {
+  color: var(--muted);
+}
+
+.jm-card-stack,
+.jm-bars,
+.jm-timeline,
+.jm-resource-grid,
+.jm-action-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.jm-mini-card,
+.jm-action-card,
+.jm-resource-card,
+.jm-generated-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+}
+
+.jm-mini-card.good {
+  border-color: rgba(52, 211, 153, 0.24);
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.12), rgba(255, 255, 255, 0.035));
+}
+
+.jm-mini-card.risk {
+  border-color: rgba(251, 113, 133, 0.24);
+  background: linear-gradient(135deg, rgba(251, 113, 133, 0.12), rgba(255, 255, 255, 0.035));
+}
+
+.jm-timeline {
+  position: relative;
+}
+
+.jm-timeline-item {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.jm-timeline-item span {
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.jm-resource-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.jm-resource-card {
+  display: grid;
+  gap: 10px;
+}
+
+.jm-resource-card h3,
+.jm-action-card strong {
+  color: var(--text);
+}
+
+.jm-resource-card div {
+  display: grid;
+  gap: 5px;
+}
+
+.jm-resource-card p,
+.jm-generated-item p,
+.jm-generated-item small {
+  color: var(--muted);
+}
+
+.jm-action-card {
+  display: grid;
+  gap: 10px;
+}
+
+.jm-action-card div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jm-generated-item {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+@media (max-width: 760px) {
+  .jm-bar-row,
+  .jm-timeline-item {
+    grid-template-columns: 1fr;
+  }
+
+  .jm-resource-grid {
+    grid-template-columns: 1fr;
+  }
+}

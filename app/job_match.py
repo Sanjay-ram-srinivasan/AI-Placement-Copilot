@@ -6,17 +6,35 @@ import re
 from pypdf import PdfReader
 
 from .llm import LLM_TIMEOUT_MSG, generate_response
+from .services.resource_recommender import recommend_resources
+from .services.roadmap_generator import generate_learning_roadmap
+from .services.skill_extractor import extract_required_skills, extract_resume_skills
+from .services.skill_gap import analyze_skill_gap, skill_scores
 
 
 DEFAULT_MATCH_RESULT = {
     "match_score": 0,
     "matching_skills": [],
     "missing_skills": [],
+    "partial_skills": [],
+    "skill_gap": {
+        "matched_skills": [],
+        "missing_skills": [],
+        "partial_skills": [],
+        "match_percentage": 0,
+        "gap_score": 0,
+    },
+    "skill_scores": [],
+    "strongest_skills": [],
+    "weakest_skills": [],
     "strengths": [],
     "weaknesses": [],
     "hiring_recommendation": "",
     "improvement_suggestions": [],
     "recommendations": [],
+    "learning_roadmap": [],
+    "resource_recommendations": [],
+    "role_fit_explanation": "",
     "full_analysis": "",
 }
 
@@ -84,6 +102,8 @@ def _normalize_match_result(raw_text: str) -> dict:
 
     result["matching_skills"] = _as_string_list(parsed.get("matching_skills"))
     result["missing_skills"] = _as_string_list(parsed.get("missing_skills"))
+    result["strongest_skills"] = _as_string_list(parsed.get("strongest_skills"))
+    result["weakest_skills"] = _as_string_list(parsed.get("weakest_skills"))
     result["strengths"] = _as_string_list(parsed.get("strengths"))
     result["weaknesses"] = _as_string_list(parsed.get("weaknesses"))
     result["hiring_recommendation"] = str(parsed.get("hiring_recommendation") or "").strip()
@@ -92,7 +112,25 @@ def _normalize_match_result(raw_text: str) -> dict:
         parsed.get("recommendations") or parsed.get("improvement_suggestions")
     )
     result["full_analysis"] = str(parsed.get("full_analysis") or raw_text or "").strip()
+    result["role_fit_explanation"] = str(parsed.get("explanation") or parsed.get("role_fit_explanation") or "").strip()
     return result
+
+
+def _infer_role(job_description: str) -> str:
+    title_match = re.search(r"^\s*([A-Za-z0-9 &/+.-]{3,80})(?:\n|$)", job_description or "")
+    if title_match:
+        return title_match.group(1).strip(" -:")
+    return "Target Role"
+
+
+def _build_rule_based_explanation(score: int, matched: list[str], missing: list[str]) -> str:
+    matched_text = ", ".join(matched[:3]) or "the role's core requirements"
+    missing_text = ", ".join(missing[:3]) or "only minor keyword evidence"
+    if score >= 75:
+        return f"Your profile strongly matches this role through {matched_text}, with remaining improvement areas around {missing_text}."
+    if score >= 50:
+        return f"Your profile has a promising base in {matched_text}, but the application would be stronger with clearer evidence of {missing_text}."
+    return f"Your profile shows limited overlap for this role. Build stronger project or resume evidence for {missing_text} before applying."
 
 
 def match_job(job_description: str, filename: str = None) -> dict:
@@ -128,16 +166,25 @@ def match_job(job_description: str, filename: str = None) -> dict:
             "file_analyzed": os.path.basename(resume_path),
         }
 
+    resume_skills = extract_resume_skills(resume_text)["skills"]
+    required_skills = extract_required_skills(job_description)["skills"]
+    gap = analyze_skill_gap(resume_skills, required_skills)
+    bars = skill_scores(required_skills, gap)
+    role = _infer_role(job_description)
+
     prompt = f"""
 You are an expert ATS and Recruitment AI with deep knowledge of technical hiring.
 
-Compare the candidate's resume against the job description.
+Compare the candidate's resume against the job description. Use the provided deterministic skill gap as your scoring anchor.
 
 Return ONLY valid JSON. Do not wrap it in markdown. Use this exact schema:
 {{
-  "match_score": 85,
+  "match_score": {gap["match_percentage"]},
   "matching_skills": ["skill 1", "skill 2"],
   "missing_skills": ["missing skill 1", "missing skill 2"],
+  "strongest_skills": ["skill 1", "skill 2"],
+  "weakest_skills": ["skill 1", "skill 2"],
+  "explanation": "Concise role-fit explanation.",
   "strengths": ["role-relevant strength 1", "role-relevant strength 2"],
   "weaknesses": ["gap or risk 1", "gap or risk 2"],
   "hiring_recommendation": "Strong hire / Hire with reservations / Needs improvement before applying, plus one concise reason.",
@@ -151,6 +198,12 @@ Rules:
 - Keep skill names short enough to display as tags.
 - Make strengths, weaknesses, and suggestions specific to this job description.
 - Put 3 to 8 items in each list when possible.
+- Treat this skill gap as authoritative unless resume evidence clearly says otherwise:
+  Resume skills: {resume_skills}
+  Required skills: {required_skills}
+  Matched skills: {gap["matched_skills"]}
+  Missing skills: {gap["missing_skills"]}
+  Partial skills: {gap["partial_skills"]}
 
 Scoring guidance:
 - 85-100: strong alignment with most required skills and relevant experience.
@@ -175,9 +228,33 @@ Job Description:
         }
 
     result = _normalize_match_result(raw_result)
+    if not result["matching_skills"]:
+        result["matching_skills"] = gap["matched_skills"]
+    if not result["missing_skills"]:
+        result["missing_skills"] = gap["missing_skills"]
+    result["partial_skills"] = gap["partial_skills"]
+    result["skill_gap"] = gap
+    result["skill_scores"] = bars
+    result["strongest_skills"] = result["strongest_skills"] or gap["matched_skills"][:5]
+    result["weakest_skills"] = result["weakest_skills"] or gap["missing_skills"][:5]
+    if not result["role_fit_explanation"]:
+        result["role_fit_explanation"] = _build_rule_based_explanation(
+            result["match_score"] or gap["match_percentage"],
+            gap["matched_skills"],
+            gap["missing_skills"],
+        )
+
+    roadmap = generate_learning_roadmap(gap["missing_skills"], role=role)
+    resources = recommend_resources(gap["missing_skills"])
 
     return {
         **result,
+        "match_score": result["match_score"] or gap["match_percentage"],
+        "learning_roadmap": roadmap.get("roadmap", []),
+        "resource_recommendations": resources.get("recommendations", []),
+        "resume_skills": resume_skills,
+        "required_skills": required_skills,
+        "target_role": role,
         "file_analyzed": os.path.basename(resume_path),
         "error": None,
     }

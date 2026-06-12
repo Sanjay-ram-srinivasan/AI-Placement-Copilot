@@ -79,7 +79,7 @@ def generate_interview_questions(
     experience_level: str = "Fresher",
 ) -> dict:
     """Generate role-specific interview questions with model answers."""
-    role = role if role in ROLES else "Software Engineer"
+    role = (role or "Software Engineer").strip()
     experience_level = experience_level if experience_level in EXPERIENCE_LEVELS else "Fresher"
     count = num_questions if num_questions in QUESTION_COUNTS else 5
 

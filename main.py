@@ -13,7 +13,11 @@ from app.job_match import match_job
 from app.interview import evaluate_interview_answer, generate_interview_questions
 from app.study_plan import generate_study_plan
 from app.ollama_client import ollama_status
-from app.quiz import generate_quiz
+from app.quiz import generate_quiz, generate_role_quiz
+from app.services.resource_recommender import recommend_resources
+from app.services.roadmap_generator import generate_learning_roadmap
+from app.services.skill_extractor import extract_required_skills, extract_resume_skills
+from app.services.skill_gap import analyze_skill_gap
 
 # ── App setup ────────────────────────────────────────────────────────────────
 app = FastAPI(
@@ -64,6 +68,30 @@ class QuizRequest(BaseModel):
     difficulty: str = Field(default="medium", examples=["easy", "medium", "hard"])
     topic_scope: str = Field(default="entire", examples=["entire", "specific"])
     topic: str = ""
+
+class SkillGapRequest(BaseModel):
+    resume_text: str = ""
+    job_description: str
+
+class LearningRoadmapRequest(BaseModel):
+    missing_skills: list[str]
+    role: str = "Target Role"
+
+class ResourceRecommendationsRequest(BaseModel):
+    missing_skills: list[str]
+
+class RoleInterviewRequest(BaseModel):
+    role: str = "Software Engineer"
+    skill: str = ""
+    difficulty: str = "Medium"
+    num_questions: int = Field(default=5, ge=3, le=20)
+    experience_level: str = "Fresher"
+
+class RoleQuizRequest(BaseModel):
+    role: str = "Target Role"
+    skill: str
+    question_count: int = Field(default=5, ge=3, le=20)
+    difficulty: str = "medium"
 
 
 # ── Health ───────────────────────────────────────────────────────────────────
@@ -156,6 +184,49 @@ async def job_match(request: Request):
         filename=_latest_resume_filename,
     )
     return result
+
+
+@app.post("/skill-gap-analysis", tags=["Skill Gap"])
+def skill_gap_analysis(data: SkillGapRequest):
+    resume_skills = extract_resume_skills(data.resume_text).get("skills", [])
+    required_skills = extract_required_skills(data.job_description).get("skills", [])
+    gap = analyze_skill_gap(resume_skills, required_skills)
+    return {
+        "resume_skills": resume_skills,
+        "required_skills": required_skills,
+        **gap,
+    }
+
+
+@app.post("/learning-roadmap", tags=["Skill Gap"])
+def learning_roadmap(data: LearningRoadmapRequest):
+    return generate_learning_roadmap(data.missing_skills, role=data.role)
+
+
+@app.post("/resource-recommendations", tags=["Skill Gap"])
+def resource_recommendations(data: ResourceRecommendationsRequest):
+    return recommend_resources(data.missing_skills)
+
+
+@app.post("/generate-interview-prep", tags=["Skill Gap"])
+def generate_interview_prep(data: RoleInterviewRequest):
+    role = f"{data.role} - {data.skill}" if data.skill else data.role
+    return generate_interview_questions(
+        role=role,
+        difficulty=data.difficulty,
+        num_questions=data.num_questions,
+        experience_level=data.experience_level,
+    )
+
+
+@app.post("/generate-role-quiz", tags=["Skill Gap"])
+def generate_role_quiz_endpoint(data: RoleQuizRequest):
+    return generate_role_quiz(
+        skill=data.skill,
+        role=data.role,
+        question_count=data.question_count,
+        difficulty=data.difficulty,
+    )
 
 
 # ── RAG Q&A ──────────────────────────────────────────────────────────────────
